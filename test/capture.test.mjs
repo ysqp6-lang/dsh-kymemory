@@ -1,6 +1,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, readdirSync, rmSync } from 'node:fs'
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { zstdCompressSync } from 'node:zlib'
@@ -75,13 +77,27 @@ test('decompressTailFrames：空输入与坏数据都安全返回', () => {
 
 // ── 存档定位 ──────────────────────────────────────────────────────────
 
-test('findSessionArchive：按 session id 片段定位', () => {
+test('findSessionArchive：按完整 id 或裸 id 定位', () => {
   const { root, archive } = makeSessionsRoot()
   try {
     assert.equal(findSessionArchive(root, 'session-abc'), archive)
     assert.equal(findSessionArchive(root, 'abc'), archive, '裸 id 也应命中')
     assert.equal(findSessionArchive(root, 'no-such-id'), null)
     assert.equal(findSessionArchive(join(root, 'missing'), 'abc'), null)
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('findSessionArchive：前缀不误命中（abc ≠ session-abcdef）', () => {
+  const root = mkdtempSync(join(tmpdir(), 'dsh-sessions-prefix-'))
+  try {
+    const dir = join(root, 'ws', 'session-abcdef')
+    mkdirSync(dir, { recursive: true })
+    writeFileSync(join(dir, 'session.v4.jsonl.zstd'), 'x')
+    assert.equal(findSessionArchive(root, 'abc'), null, 'abc 不应匹配 session-abcdef')
+    assert.ok(findSessionArchive(root, 'abcdef'), 'abcdef 应命中')
+    assert.ok(findSessionArchive(root, 'session-abcdef'), '完整 id 应命中')
   } finally {
     rmSync(root, { recursive: true, force: true })
   }
@@ -324,5 +340,91 @@ test('writeInbox：超过 keep 上限时把最旧的推进 archive/', () => {
     assert.ok(live.some((f) => f.includes('e')), '最新的候选必须留下')
   } finally {
     rmSync(root, { recursive: true, force: true })
+  }
+})
+
+// ── 加固：过期清理与并发 ─────────────────────────────────────────────
+
+test('writeInbox：超过 30 天的候选自动归档', () => {
+  const root = mkdtempSync(join(tmpdir(), 'dsh-inbox-stale-'))
+  try {
+    const dir = join(root, 'inbox')
+    mkdirSync(dir, { recursive: true })
+    const oldDate = new Date(Date.now() - 40 * 86_400_000).toISOString().slice(0, 10)
+    const staleName = `${oldDate}-old-session.md`
+    writeFileSync(join(dir, staleName), '旧候选', 'utf8')
+
+    writeInbox(root, {
+      sessionId: 'fresh',
+      title: '新的',
+      cwd: '',
+      capturedAt: new Date().toISOString(),
+      messageCount: 2,
+      summaryCount: 0,
+      body: '新素材',
+    })
+
+    assert.equal(existsSync(join(dir, staleName)), false, '过期候选应被移出 inbox')
+    assert.ok(existsSync(join(dir, 'archive', staleName)), '应出现在 archive 里')
+    const live = readdirSync(dir).filter((f) => f.endsWith('.md'))
+    assert.equal(live.length, 1)
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('并发：三个进程同时捕获不同会话，互不破坏', async () => {
+  const sessionsRoot = mkdtempSync(join(tmpdir(), 'dsh-sessions-par-'))
+  const memoryRoot = mkdtempSync(join(tmpdir(), 'dsh-memory-par-'))
+  const writer = join(tmpdir(), `cap-writer-${process.pid}.mjs`)
+  try {
+    // 三个独立会话存档
+    const ids = []
+    for (const id of ['aaa', 'bbb', 'ccc']) {
+      const dir = join(sessionsRoot, 'ws', `session-${id}`)
+      mkdirSync(dir, { recursive: true })
+      writeFileSync(
+        join(dir, 'session.v4.jsonl.zstd'),
+        multiFrame([
+          JSON.stringify({ type: 'session/title', data: { title: `会话 ${id}` } }),
+          JSON.stringify({
+            type: 'user/message',
+            data: { content: [{ type: 'text', text: `问题 ${id}` }], source: { kind: 'user' } },
+          }),
+          JSON.stringify({
+            type: 'user/message',
+            data: { content: [{ type: 'text', text: `追问 ${id}` }], source: { kind: 'user' } },
+          }),
+        ]),
+      )
+      ids.push(`session-${id}`)
+    }
+
+    writeFileSync(
+      writer,
+      `import { captureSession, writeInbox } from ${JSON.stringify(join(process.cwd(), 'lib', 'capture.js'))}
+const [sessionsRoot, memoryRoot, sessionId] = process.argv.slice(2)
+const capture = captureSession({ sessionsRoot, sessionId, minMessages: 1 })
+if (capture && !capture.skipped) writeInbox(memoryRoot, capture)
+`,
+      'utf8',
+    )
+
+    const execFileAsync = promisify(execFile)
+    await Promise.all(
+      ids.map((id) =>
+        execFileAsync(process.execPath, [writer, sessionsRoot, memoryRoot, id]),
+      ),
+    )
+
+    const files = readdirSync(join(memoryRoot, 'inbox')).filter((f) => f.endsWith('.md'))
+    assert.equal(files.length, 3, `三个会话应各产出一个候选，实际 ${files.length}`)
+    for (const id of ['aaa', 'bbb', 'ccc']) {
+      assert.ok(files.some((f) => f.includes(id)), `缺少 ${id} 的候选`)
+    }
+  } finally {
+    rmSync(sessionsRoot, { recursive: true, force: true })
+    rmSync(memoryRoot, { recursive: true, force: true })
+    rmSync(writer, { force: true })
   }
 })

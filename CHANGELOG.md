@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `memory_pending`：查看 `pending.jsonl` 里等待整理的会话队列。
 - `memory_curate`：把已处理的队列归档为 `pending.processed.YYYY-MM-DD.jsonl`，为下一批让路。
 - 检索升级：中文按 bigram 切分、英文按词切分，返回相关度分数并按分数排序。
+- **IDF 加权检索**：稀有词（如 `zstd`）自动高于高频词（如「记忆」）；token 切碎导致的漏匹配（`sqlite` vs `sqlite3`）由子串兜底补回。
 - 并发写保护：写 `MEMORY.md` / `pending.jsonl` 前获取文件锁，带退避重试，避免多会话同时写互相覆盖。
 
 ### Changed
@@ -32,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - 超大任务族与孤儿证据现在由 `memory_doctor` 稳定报出（此前只在大组场景下才提示）。
+- **自查修复**：`findSessionArchive` 原用 `includes` 会把 `abc` 误配到 `session-abcdef`，改为精确匹配；`promoteInbox` 补上文件锁（两会话同时归档不再互相踩）；inbox 候选超过 30 天未处理会自动归入 `archive/`。
 - **自动捕获的三处加固**：`session→时间戳` 的节流表超过 500 条会清理（常开进程不再慢性增长）；会话存档超过 4 MB 时只读尾部并从帧边界切入（内存不再随会话大小线性增长）；`inbox/` 超过 50 个候选时自动把最旧的推进 `inbox/archive/`。
 - **`session/disposed` 在短命进程（如 headless）里不会触发**，导致 0.1.0 的 pending 队列在真实场景中可能从未生效；现在同时监听 `session/event` 的 `turn/end` 兜底。
 

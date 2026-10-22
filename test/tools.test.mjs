@@ -289,3 +289,86 @@ store.save('env', process.argv[2], '2026-10-23')
     rmSync(root, { recursive: true, force: true })
   }
 })
+
+test('search：稀有词权重高于高频词（IDF）', () => {
+  const root = mkdtempSync(join(tmpdir(), 'dsh-idf-'))
+  try {
+    mkdirSync(join(root, 'summaries'), { recursive: true })
+    writeFileSync(join(root, 'memory_summary.md'), '# 索引\n', 'utf8')
+    const lines = ['# MEMORY', '', '## a', '']
+    // 20 行都含「记忆」，只有最后一行含「zstd」
+    for (let i = 0; i < 20; i++) lines.push(`- 2026-10-01 记忆条目第 ${i} 条`)
+    lines.push('- 2026-10-02 zstd 解压这件事只出现过一次')
+    writeFileSync(join(root, 'MEMORY.md'), lines.join('\n'), 'utf8')
+
+    const store = createStore({ root })
+    const result = store.search('记忆 zstd')
+    assert.ok(result.total >= 2)
+    assert.match(result.hits[0].text, /zstd/, '含稀有词的条目应排第一')
+    // 那一行只含 zstd、不含「记忆」，所以 matched=1；能排第一正说明稀有词权重够高
+    assert.equal(result.hits[0].matched, 1, '该行只命中稀有词')
+    assert.ok(
+      result.hits[0].score > result.hits[1].score,
+      `稀有词行应更高分：${result.hits.map((h) => h.score).join(' > ')}`,
+    )
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('search：子串命中仍能返回（sqlite 命中 sqlite3）', () => {
+  const root = mkdtempSync(join(tmpdir(), 'dsh-substr-'))
+  try {
+    mkdirSync(join(root, 'summaries'), { recursive: true })
+    writeFileSync(join(root, 'memory_summary.md'), '# 索引\n', 'utf8')
+    writeFileSync(
+      join(root, 'MEMORY.md'),
+      '# MEMORY\n\n## a\n\n- 2026-10-01 sqlite3 直接打不开\n',
+      'utf8',
+    )
+    const store = createStore({ root })
+    const result = store.search('sqlite')
+    assert.equal(result.total, 1, 'token 切碎后仍应通过子串命中')
+    assert.match(result.hits[0].text, /sqlite3/)
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('search：文件改动后缓存失效，能搜到新内容', () => {
+  const root = mkdtempSync(join(tmpdir(), 'dsh-cache-'))
+  try {
+    mkdirSync(join(root, 'summaries'), { recursive: true })
+    writeFileSync(join(root, 'memory_summary.md'), '# 索引\n', 'utf8')
+    const route = join(root, 'MEMORY.md')
+    writeFileSync(route, '# MEMORY\n\n## a\n\n- 2026-10-01 alpha\n', 'utf8')
+    const store = createStore({ root })
+    // 用不共享 bigram 的英文词，避免「内容」这类公共片段干扰断言
+    assert.equal(store.search('alpha').total, 1)
+    assert.equal(store.search('zulu').total, 0)
+
+    // 改文件：mtime/size 变化应让缓存失效
+    writeFileSync(route, '# MEMORY\n\n## a\n\n- 2026-10-02 zulu 来了\n', 'utf8')
+    assert.equal(store.search('zulu').total, 1, '缓存必须失效才能搜到新内容')
+    assert.equal(store.search('alpha').total, 0, '旧内容不应再命中')
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('inbox：精确文件名优先于模糊匹配', () => {
+  const root = mkdtempSync(join(tmpdir(), 'dsh-inbox-name-'))
+  try {
+    const dir = join(root, 'inbox')
+    mkdirSync(dir, { recursive: true })
+    writeFileSync(join(dir, '2026-10-01-aaa.md'), 'AAA', 'utf8')
+    writeFileSync(join(dir, '2026-10-02-aaaa.md'), 'AAAA', 'utf8')
+    const store = createStore({ root })
+    // 精确名应命中第一个，而不是包含它的第二个
+    assert.equal(store.readInbox('2026-10-01-aaa.md').text, 'AAA')
+    // 模糊片段仍然可用
+    assert.equal(store.readInbox('02-aaaa').text, 'AAAA')
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
