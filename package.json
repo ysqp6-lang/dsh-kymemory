@@ -1,0 +1,53 @@
+{
+  "name": "dsh-kymemory",
+  "version": "0.1.0",
+  "description": "Layered local memory for DeepSeek Harness: a Markdown index auto-injected into the system prompt, a route layer read on demand, and evidence files for detail. Pure files, zero runtime dependencies.",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": {
+      "default": "./lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md",
+    "README.zh.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test test/"
+  },
+  "engines": {
+    "node": ">=22.19"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "memory",
+    "persistent-memory",
+    "progressive-disclosure",
+    "markdown"
+  ],
+  "author": "Thy <ysqp6@icloud.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ysqp6-lang/dsh-kymemory.git"
+  },
+  "homepage": "https://github.com/ysqp6-lang/dsh-kymemory#readme",
+  "bugs": {
+    "url": "https://github.com/ysqp6-lang/dsh-kymemory/issues"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.4"
+  }
+}
