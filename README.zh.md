@@ -82,6 +82,10 @@ agent 会调用 `memory_save` 把这条写进记忆。下次新开会话直接�
 | `memory_groups` | 列出所有任务族及条目数 |
 | `memory_stats` | 规模自检：索引行数/字节（含上限判定）、路由层统计、证据文件数 |
 | `memory_doctor` | 记忆体检：重复任务族、索引超限、孤儿证据、缺日期条目、失效路由、重复条目 |
+| `memory_forget` | 删除一条记忆（内容片段或行号，只在本任务族内生效） |
+| `memory_archive` | 把一条记忆移进 `archive/`，保留可回溯性 |
+| `memory_pending` | 查看待整理的会话队列（`pending.jsonl`） |
+| `memory_curate` | 归档并清空待整理队列，给下一批让路 |
 
 ## 目录布局
 

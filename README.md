@@ -84,6 +84,10 @@ Five native tools become available to the agent:
 | `memory_groups` | List task groups with entry counts |
 | `memory_stats` | Size report: index lines/bytes (with limit check), route stats, evidence count |
 | `memory_doctor` | Health check: duplicate groups, over-budget index, orphaned evidence, missing dates, dead routes |
+| `memory_forget` | Delete one memory (by substring or line number, scoped to that group) |
+| `memory_archive` | Move one memory into `archive/`, keeping it recoverable |
+| `memory_pending` | Inspect the queue of closed sessions awaiting curation |
+| `memory_curate` | Archive and clear the queue, making room for the next batch |
 
 ## Layout
 

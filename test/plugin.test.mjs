@@ -67,15 +67,19 @@ test('配置模块零外部依赖，任何 profile 都能加载', async () => {
   assert.equal(off.enqueueOnDispose, false)
 })
 
-test('注册五个记忆工具，且名字与参数契约完整', () => {
+test('注册十个记忆工具，且名字与参数契约完整', () => {
   const root = fixture()
   try {
     const { ctx, tools } = mockCtx()
     apply(ctx, { root })
     const names = tools.map((tool) => tool.name).sort()
     assert.deepEqual(names, [
+      'memory_archive',
+      'memory_curate',
       'memory_doctor',
+      'memory_forget',
       'memory_groups',
+      'memory_pending',
       'memory_recall',
       'memory_save',
       'memory_search',
@@ -174,7 +178,7 @@ test('关闭注入或没有 systemPrompt 服务时不注册 section', () => {
     apply(noService.ctx, { root })
     assert.equal(noService.sections.length, 0)
     // 工具仍然要注册（注入是可选能力，工具不是）
-    assert.equal(noService.tools.length, 6)
+    assert.equal(noService.tools.length, 10)
   } finally {
     rmSync(root, { recursive: true, force: true })
   }
