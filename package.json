@@ -19,7 +19,8 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "node --test test/"
+    "test": "node --test test/*.test.mjs",
+    "selftest": "node scripts/selftest.mjs"
   },
   "engines": {
     "node": ">=22.19"

@@ -25,9 +25,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 索引注入前会压缩：去掉引用说明行与连续空行，同样预算下能多塞正文。
 - `memory_search` 的输出带分数，命中的 token 越多分越高。
 
+### Added (tooling)
+
+- `scripts/selftest.mjs`：一键自检（语法 / 测试 / 零依赖 / 发布内容 / 真实会话捕获链路 / 注入性能），`npm run selftest`。
+
 ### Fixed
 
 - 超大任务族与孤儿证据现在由 `memory_doctor` 稳定报出（此前只在大组场景下才提示）。
+- **自动捕获的三处加固**：`session→时间戳` 的节流表超过 500 条会清理（常开进程不再慢性增长）；会话存档超过 4 MB 时只读尾部并从帧边界切入（内存不再随会话大小线性增长）；`inbox/` 超过 50 个候选时自动把最旧的推进 `inbox/archive/`。
 - **`session/disposed` 在短命进程（如 headless）里不会触发**，导致 0.1.0 的 pending 队列在真实场景中可能从未生效；现在同时监听 `session/event` 的 `turn/end` 兜底。
 
 ## [0.1.0] — 2026-10-23

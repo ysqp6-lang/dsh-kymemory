@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, readdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { zstdCompressSync } from 'node:zlib'
@@ -12,6 +12,7 @@ import {
   captureSession,
   renderInbox,
   writeInbox,
+  readFileTail,
 } from '../lib/capture.js'
 import { createStore } from '../lib/store.js'
 
@@ -267,6 +268,60 @@ test('renderIndex：inbox 非空时在注入文本里提示', () => {
       body: '素材',
     })
     assert.match(store.renderIndex(), /inbox 有 1 个待整理候选/)
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+// ── 尾部只读与保留策略（0.2.1 加固）────────────────────────────────
+
+test('readFileTail：小文件整体读出，大文件只读尾部并切到帧边界', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'dsh-tail-'))
+  const path = join(dir, 'many.zstd')
+  try {
+    const frames = Array.from({ length: 200 }, (_, i) =>
+      zstdCompressSync(Buffer.from(`line-${i}\n`)),
+    )
+    const whole = Buffer.concat(frames)
+    writeFileSync(path, whole)
+
+    assert.equal(readFileTail(path, whole.length + 16).length, whole.length, '未超限时整份读出')
+
+    const tail = readFileTail(path, 300)
+    assert.ok(tail.length <= 300, `尾部读取应受限，实际 ${tail.length}`)
+    assert.deepEqual(
+      [...tail.subarray(0, 4)],
+      [0x28, 0xb5, 0x2f, 0xfd],
+      '必须从 zstd 帧边界开始，否则解压会失败',
+    )
+    // 尾部依然能解出内容
+    const text = decompressTailFrames(tail).toString('utf8')
+    assert.match(text, /line-199/)
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+test('writeInbox：超过 keep 上限时把最旧的推进 archive/', () => {
+  const root = mkdtempSync(join(tmpdir(), 'dsh-inbox-keep-'))
+  try {
+    const make = (id) => ({
+      sessionId: id,
+      title: id,
+      cwd: '',
+      capturedAt: new Date().toISOString(),
+      messageCount: 2,
+      summaryCount: 0,
+      body: `素材 ${id}`,
+    })
+    for (const id of ['a', 'b', 'c', 'd', 'e']) writeInbox(root, make(id), { keep: 3 })
+
+    const live = readdirSync(join(root, 'inbox')).filter((f) => f.endsWith('.md'))
+    assert.equal(live.length, 3, `应只保留 3 个，实际 ${live.length}`)
+    const archived = readdirSync(join(root, 'inbox', 'archive')).filter((f) => f.endsWith('.md'))
+    assert.equal(archived.length, 2, `应归档 2 个，实际 ${archived.length}`)
+    // 保留的应是最新的
+    assert.ok(live.some((f) => f.includes('e')), '最新的候选必须留下')
   } finally {
     rmSync(root, { recursive: true, force: true })
   }
