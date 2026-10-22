@@ -22,7 +22,7 @@ function fixture() {
 function mockCtx({ withSystemPrompt = true } = {}) {
   const tools = []
   const sections = []
-  const handlers = new Map()
+  const handlers = new Map() // event -> [fn, ...]
   const effects = []
   const ctx = {
     tools: { register: (tool) => tools.push(tool) },
@@ -37,7 +37,10 @@ function mockCtx({ withSystemPrompt = true } = {}) {
       const disposer = fn()
       return () => disposer?.()
     },
-    on: (event, handler) => handlers.set(event, handler),
+    on: (event, handler) => {
+      if (!handlers.has(event)) handlers.set(event, [])
+      handlers.get(event).push(handler)
+    },
   }
   return { ctx, tools, sections, handlers, effects }
 }
@@ -67,7 +70,7 @@ test('配置模块零外部依赖，任何 profile 都能加载', async () => {
   assert.equal(off.enqueueOnDispose, false)
 })
 
-test('注册十个记忆工具，且名字与参数契约完整', () => {
+test('注册十二个记忆工具，且名字与参数契约完整', () => {
   const root = fixture()
   try {
     const { ctx, tools } = mockCtx()
@@ -79,7 +82,9 @@ test('注册十个记忆工具，且名字与参数契约完整', () => {
       'memory_doctor',
       'memory_forget',
       'memory_groups',
+      'memory_inbox',
       'memory_pending',
+      'memory_promote',
       'memory_recall',
       'memory_save',
       'memory_search',
@@ -178,7 +183,7 @@ test('关闭注入或没有 systemPrompt 服务时不注册 section', () => {
     apply(noService.ctx, { root })
     assert.equal(noService.sections.length, 0)
     // 工具仍然要注册（注入是可选能力，工具不是）
-    assert.equal(noService.tools.length, 10)
+    assert.equal(noService.tools.length, 12)
   } finally {
     rmSync(root, { recursive: true, force: true })
   }
@@ -189,8 +194,9 @@ test('会话关闭事件写入 pending 队列', () => {
   try {
     const { ctx, handlers } = mockCtx()
     apply(ctx, { root })
-    const handler = handlers.get('session/disposed')
-    assert.equal(typeof handler, 'function')
+    const listeners = handlers.get('session/disposed')
+    assert.ok(Array.isArray(listeners) && listeners.length >= 1)
+    const handler = listeners[0] // 第一个是 enqueue
     handler({ id: 'session-xyz', title: '测试会话' })
     const rows = readFileSync(join(root, 'pending.jsonl'), 'utf8').trim().split('\n')
     assert.equal(rows.length, 1)
@@ -208,12 +214,12 @@ test('事件处理器抛错不会冒泡（不能让会话拆除失败）', () =>
   try {
     const { ctx, handlers } = mockCtx()
     apply(ctx, { root })
-    const handler = handlers.get('session/disposed')
-    // 传入只读目录之类会导致写入失败；这里直接用非法 root 触发
+    const listeners = handlers.get('session/disposed')
     const broken = mockCtx()
-    apply(broken.ctx, { root: '/dev/null/not-a-dir' })
-    assert.doesNotThrow(() => broken.handlers.get('session/disposed')({ id: 'x' }))
-    assert.doesNotThrow(() => handler({}))
+    apply(broken.ctx, { root: '/dev/null/not-a-dir', autoCapture: 'off' })
+    const brokenListeners = broken.handlers.get('session/disposed') ?? []
+    for (const fn of brokenListeners) assert.doesNotThrow(() => fn({ id: 'x' }))
+    for (const fn of listeners) assert.doesNotThrow(() => fn({}))
   } finally {
     rmSync(root, { recursive: true, force: true })
   }
@@ -223,7 +229,7 @@ test('enqueueOnDispose 关闭时不监听事件', () => {
   const root = fixture()
   try {
     const { ctx, handlers } = mockCtx()
-    apply(ctx, { root, enqueueOnDispose: false })
+    apply(ctx, { root, enqueueOnDispose: false, autoCapture: 'off' })
     assert.equal(handlers.has('session/disposed'), false)
   } finally {
     rmSync(root, { recursive: true, force: true })

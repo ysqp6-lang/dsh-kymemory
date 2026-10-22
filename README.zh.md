@@ -68,6 +68,14 @@ agent 会调用 `memory_save` 把这条写进记忆。下次新开会话直接�
     summaryFile: 'memory_summary.md'
     routeFile: 'MEMORY.md'
     evidenceDir: 'summaries'
+
+    # 自动捕获（0.2.0）
+    autoCapture: 'inbox'       # 'inbox' 收集候选；'off' 关闭
+    captureFrames: 300         # 从尾部解压多少帧
+    captureMaxChars: 4000      # 单个候选的正文上限
+    captureMinMessages: 2      # 少于这么多条用户消息的会话直接跳过
+    captureThrottleMs: 60000   # turn/end 增量捕获的节流窗口
+    sessionsRoot: '~/.dsh/sessions'
 ```
 
 ## 工具
@@ -86,6 +94,8 @@ agent 会调用 `memory_save` 把这条写进记忆。下次新开会话直接�
 | `memory_archive` | 把一条记忆移进 `archive/`，保留可回溯性 |
 | `memory_pending` | 查看待整理的会话队列（`pending.jsonl`） |
 | `memory_curate` | 归档并清空待整理队列，给下一批让路 |
+| `memory_inbox` | 查看自动捕获的候选素材；传 `file` 读取内容 |
+| `memory_promote` | 把已提炼入库的候选文件移进 `inbox/archive/` |
 
 ## 目录布局
 

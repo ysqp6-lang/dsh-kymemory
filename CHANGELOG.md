@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **自动捕获**：`session/disposed` 与 `turn/end`（节流）两个触发点会把会话里的用户原话与压缩摘要收进 `inbox/`，作为候选素材。刻意不调用模型——解压与抽取是纯机械操作，提炼交给下一次会话里的 agent，零 API 成本、零幻觉风险。
+- 多帧 zstd 尾部解压：DSH 每追加一次就写一帧，Node 内置解压只吃第一帧，因此从文件尾部按 magic 回溯只解最近 N 帧（5.4 MB 会话约 5 ms）。
+- `memory_inbox` / `memory_promote`：查看候选素材、提炼入库后归档。
+- 索引注入时若 inbox 有待整理候选，会在末尾附一行提示。
 - `memory_save` 支持 `createGroup: true`：任务族不存在时一步创建并写入，不再需要先建组。
 - `memory_forget`：按内容片段或行号删除一条记忆（会先校验该行确实在目标任务族内）。
 - `memory_archive`：把一条记忆从 `MEMORY.md` 移入 `archive/YYYY-MM-DD-archived.md`，保留可回溯性。
@@ -24,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - 超大任务族与孤儿证据现在由 `memory_doctor` 稳定报出（此前只在大组场景下才提示）。
+- **`session/disposed` 在短命进程（如 headless）里不会触发**，导致 0.1.0 的 pending 队列在真实场景中可能从未生效；现在同时监听 `session/event` 的 `turn/end` 兜底。
 
 ## [0.1.0] — 2026-10-23
 

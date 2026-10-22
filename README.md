@@ -70,6 +70,14 @@ Add a config block to your profile's `cordis.patch.yml` (everything is optional;
     summaryFile: 'memory_summary.md'
     routeFile: 'MEMORY.md'
     evidenceDir: 'summaries'
+
+    # auto-capture (0.2.0)
+    autoCapture: 'inbox'       # 'inbox' collects candidates; 'off' disables
+    captureFrames: 300         # frames decoded from the tail
+    captureMaxChars: 4000      # body cap per candidate
+    captureMinMessages: 2      # skip sessions shorter than this
+    captureThrottleMs: 60000   # throttle for turn/end incremental capture
+    sessionsRoot: '~/.dsh/sessions'
 ```
 
 ## Tools
@@ -88,6 +96,8 @@ Five native tools become available to the agent:
 | `memory_archive` | Move one memory into `archive/`, keeping it recoverable |
 | `memory_pending` | Inspect the queue of closed sessions awaiting curation |
 | `memory_curate` | Archive and clear the queue, making room for the next batch |
+| `memory_inbox` | Inspect auto-captured candidates; pass `file` to read one |
+| `memory_promote` | Archive a promoted candidate into `inbox/archive/` |
 
 ## Layout
 
