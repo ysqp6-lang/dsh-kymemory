@@ -167,3 +167,49 @@ test('doctor：记忆目录缺失时安全报错而不是抛异常', () => {
   assert.equal(r.checked.entries, 0)
   assert.ok(Array.isArray(r.issues))
 })
+
+// ── 冲突检测与用量（0.3.0）────────────────────────────────────────
+
+function memRoute(entries) {
+  return ['# MEMORY', '', '## env', '', ...entries.map((e) => `- ${e}`), '', '### Older Memory Topics', ''].join('\n')
+}
+
+test('doctor：相似但否定词只在一边 → 报疑似矛盾', () => {
+  const route = memRoute([
+    '2026-10-01 这个项目用 pnpm 管理依赖',
+    '2026-10-02 这个项目不用 pnpm 管理依赖',
+  ])
+  const r = check({ index: CLEAN_INDEX, route, evidence: {} })
+  const conflict = r.issues.find((i) => i.code === 'suspected-conflict')
+  assert.ok(conflict, '应报 suspected-conflict')
+  assert.equal(conflict.level, 'warn')
+  assert.deepEqual(conflict.lines, [5, 6])
+})
+
+test('doctor：相似且都没有否定词 → 不报矛盾', () => {
+  const route = memRoute([
+    '2026-10-01 这个项目用 pnpm 管理依赖',
+    '2026-10-02 这个项目用 pnpm 管理依赖关系',
+  ])
+  const r = check({ index: CLEAN_INDEX, route, evidence: {} })
+  assert.equal(r.issues.filter((i) => i.code === 'suspected-conflict').length, 0)
+})
+
+test('doctor：相似度不够时不报矛盾', () => {
+  const route = memRoute([
+    '2026-10-01 这个项目用 pnpm 管理依赖',
+    '2026-10-02 服务器部署在 homehub 上不要外网暴露',
+  ])
+  const r = check({ index: CLEAN_INDEX, route, evidence: {} })
+  assert.equal(r.issues.filter((i) => i.code === 'suspected-conflict').length, 0)
+})
+
+test('doctor：从未 recall 的族以 info 报出，不影响 ok', () => {
+  const route = memRoute(['2026-10-01 alpha 上线'])
+  const r = check({ index: CLEAN_INDEX, route, evidence: {} })
+  assert.equal(r.ok, true)
+  const never = r.issues.find((i) => i.code === 'never-recalled')
+  assert.ok(never, '应报 never-recalled')
+  assert.equal(never.level, 'info')
+  assert.match(never.message, /memory_search 命中同样会用到内容/)
+})

@@ -372,3 +372,49 @@ test('inbox：精确文件名优先于模糊匹配', () => {
     rmSync(root, { recursive: true, force: true })
   }
 })
+
+test('usage：recall 后计数与时间被记录', () => {
+  const root = mkdtempSync(join(tmpdir(), 'dsh-usage-'))
+  try {
+    mkdirSync(join(root, 'summaries'), { recursive: true })
+    writeFileSync(join(root, 'memory_summary.md'), '# 索引\n', 'utf8')
+    writeFileSync(
+      join(root, 'MEMORY.md'),
+      '# MEMORY\n\n## env\n\n- 2026-10-01 alpha\n\n## tools\n\n- 2026-10-02 beta\n',
+      'utf8',
+    )
+    const store = createStore({ root })
+
+    const before = store.usage()
+    assert.equal(before.rows.length, 0)
+    assert.deepEqual(before.neverUsed.sort(), ['env', 'tools'])
+
+    store.recall('env')
+    store.recall('env')
+    const after = store.usage()
+    const env = after.rows.find((r) => r.slug === 'env')
+    assert.ok(env, 'env 应有用量记录')
+    assert.equal(env.count, 2)
+    assert.ok(env.lastUsed && Date.parse(env.lastUsed) > 0)
+    assert.deepEqual(after.neverUsed, ['tools'], 'tools 仍未使用')
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('usage：用量文件损坏时安全降级', () => {
+  const root = mkdtempSync(join(tmpdir(), 'dsh-usage-bad-'))
+  try {
+    mkdirSync(join(root, 'summaries'), { recursive: true })
+    writeFileSync(join(root, 'memory_summary.md'), '# 索引\n', 'utf8')
+    writeFileSync(join(root, 'MEMORY.md'), '# MEMORY\n\n## env\n\n- 2026-10-01 alpha\n', 'utf8')
+    writeFileSync(join(root, 'usage.json'), '{ 坏掉的 json', 'utf8')
+    const store = createStore({ root })
+    assert.doesNotThrow(() => store.recall('env'))
+    const usage = store.usage()
+    assert.equal(usage.totalGroups, 1)
+    assert.equal(usage.rows.length, 1, '坏文件应被重建而不是崩溃')
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})

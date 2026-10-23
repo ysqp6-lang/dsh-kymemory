@@ -4,7 +4,18 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — 0.2.0
+## [0.3.0] — 2026-10-23
+
+### Added
+
+- **疑似矛盾检测**：`memory_doctor` 现在会找出同族内「高度相似但否定词只在一边」的条目——例如「用 pnpm」与「不用 pnpm」并存。这是记忆最危险的失效方式，报成 `suspected-conflict`。
+- **记忆用量统计**：`memory_recall` 会记录每个任务族的取用次数与最近使用时间（`usage.json`），`memory_doctor` 据此报出从未被取过、或 90 天没碰过的族，帮判断哪些记忆只是噪音。
+
+### Changed
+
+- 体检报告新增 `info` 级别，不参与「是否通过」的判定（只有 error 才算失败）。
+
+## [Unreleased]
 
 ### Added
 

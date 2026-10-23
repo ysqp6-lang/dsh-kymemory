@@ -89,7 +89,7 @@ agent 会调用 `memory_save` 把这条写进记忆。下次新开会话直接�
 | `memory_save` | 追加一条带日期的记忆到指定任务族 |
 | `memory_groups` | 列出所有任务族及条目数 |
 | `memory_stats` | 规模自检：索引行数/字节（含上限判定）、路由层统计、证据文件数 |
-| `memory_doctor` | 记忆体检：重复任务族、索引超限、孤儿证据、缺日期条目、失效路由、重复条目 |
+| `memory_doctor` | 记忆体检：重复任务族、**疑似矛盾**、索引超限、孤儿证据、缺日期、失效路由、重复条目、**用量分析** |
 | `memory_forget` | 删除一条记忆（内容片段或行号，只在本任务族内生效） |
 | `memory_archive` | 把一条记忆移进 `archive/`，保留可回溯性 |
 | `memory_pending` | 查看待整理的会话队列（`pending.jsonl`） |
@@ -105,7 +105,8 @@ agent 会调用 `memory_save` 把这条写进记忆。下次新开会话直接�
 ├── MEMORY.md            路由层，按 `## <任务族>` 组织，条目以日期开头
 ├── summaries/           证据层，单条细节超过 5 行时单独成文
 ├── archive/             过时内容归档，不直接删
-└── pending.jsonl        会话关闭时自动登记的待整理队列（插件与整理脚本共用）
+├── pending.jsonl        会话关闭时自动登记的待整理队列（插件与整理脚本共用）
+└── usage.json           memory_recall 的取用次数与最近使用时间
 ```
 
 条目约定：`- YYYY-MM-DD 内容`，一行一条，可独立读懂。

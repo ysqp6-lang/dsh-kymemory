@@ -91,7 +91,7 @@ Five native tools become available to the agent:
 | `memory_save` | Append one dated fact to a task group |
 | `memory_groups` | List task groups with entry counts |
 | `memory_stats` | Size report: index lines/bytes (with limit check), route stats, evidence count |
-| `memory_doctor` | Health check: duplicate groups, over-budget index, orphaned evidence, missing dates, dead routes |
+| `memory_doctor` | Health check: duplicate groups, **suspected contradictions**, over-budget index, orphaned evidence, missing dates, dead routes, **usage report** |
 | `memory_forget` | Delete one memory (by substring or line number, scoped to that group) |
 | `memory_archive` | Move one memory into `archive/`, keeping it recoverable |
 | `memory_pending` | Inspect the queue of closed sessions awaiting curation |
@@ -107,7 +107,8 @@ Five native tools become available to the agent:
 ├── MEMORY.md            route layer, `## <group>` blocks, dated bullets
 ├── summaries/           evidence layer, one file per detailed topic
 ├── archive/             stale content, archived rather than deleted
-└── pending.jsonl        sessions queued on close, shared with your curation script
+├── pending.jsonl        sessions queued on close, shared with your curation script
+└── usage.json           recall counts and last-used timestamps per task group
 ```
 
 Bullet convention: `- YYYY-MM-DD content`, one line, readable on its own.
