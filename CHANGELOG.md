@@ -4,6 +4,18 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] — 2026-10-26
+
+### Added
+
+- **整理按钮**：面板头部新增「🧹 整理」，列出机器能**确定修对**的四类问题并可一键修复：
+  - 删除完全重复的条目（逐字相同才算）
+  - 移除失效的作用域标记（`@路径` 指向已不存在的目录）
+  - 合并连续空行
+  - 归档超过 30 天的 inbox 候选
+- **三条安全约束**：动手前自动备份 `MEMORY.md` 到 `archive/MEMORY.md.bak-tidy-<时间>`；提供「撤销上次整理」逐字恢复；只改结构不改内容（不删写记忆正文）。
+- 需人工判断的问题（超大族、疑似矛盾、从未取用的族、缺日期）**不进自动修复**，只保留在体检详情里提示。
+
 ## [0.7.0] — 2026-10-26
 
 ### Added

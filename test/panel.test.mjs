@@ -68,6 +68,7 @@ test('面板 API：注册三条只读路由', () => {
         '/dsh-kymemory/api/group',
         '/dsh-kymemory/api/overview',
         '/dsh-kymemory/api/search',
+        '/dsh-kymemory/api/tidy',
         '/dsh-kymemory/panel',
       ],
     )
