@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] — 2026-10-26
+
+### Changed
+
+- **面板视觉重做**：六张状态卡片改为内联 SVG 图标 + 大数字 + 小标签；任务族改为**两列网格**（展开时占满整行），29 个族的高度砍掉一半；inbox 提到族列表之前并精简为「日期 + session 短 id」；搜索框、分隔线、hover 与聚焦过渡统一到一套暗色设计变量。
+
 ## [0.6.0] — 2026-10-25
 
 ### Added
