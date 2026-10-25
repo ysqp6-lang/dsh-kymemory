@@ -9,21 +9,20 @@ import { apply } from '../lib/index.js'
 /** 造一个插件上下文：工具收集 + 可选 webServer */
 function makeCtx({ withWebServer }) {
   const routes = new Map()
+  // cordis 把 inject 声明的服务挂在 ctx 上（ctx.webServer），不是通过 ctx.get 取
+  const webServer = withWebServer
+    ? {
+        register: (route) => {
+          routes.set(route.path, route)
+        },
+      }
+    : undefined
   const ctx = {
     tools: { register: () => {} },
     sections: [],
     handlers: new Map(),
-    get: (name) => {
-      if (name === 'webServer') {
-        if (!withWebServer) return false
-        return {
-          register: (route) => {
-            routes.set(route.path, route)
-          },
-        }
-      }
-      return false
-    },
+    webServer,
+    get: () => false,
     effect: (fn) => fn(),
     on: () => {},
   }

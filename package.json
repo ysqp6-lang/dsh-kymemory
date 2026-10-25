@@ -1,11 +1,16 @@
 {
   "name": "dsh-kymemory",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "description": "Layered local memory for DeepSeek Harness: a Markdown index auto-injected into the system prompt, a route layer read on demand, and evidence files for detail. Pure files, zero runtime dependencies.",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
-    ".": "./lib/index.js",
+    ".": {
+      "default": "./lib/index.js"
+    },
+    "./client": {
+      "default": "./lib/client.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -45,6 +50,12 @@
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ]
     }
   },
   "peerDependencies": {

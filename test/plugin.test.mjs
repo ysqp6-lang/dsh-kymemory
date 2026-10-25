@@ -47,7 +47,7 @@ function mockCtx({ withSystemPrompt = true } = {}) {
 
 test('插件导出了 cordis 需要的元信息', () => {
   assert.equal(name, 'dsh-kymemory')
-  assert.deepEqual(inject, ['tools', 'sessions'])
+  assert.deepEqual(inject, ['tools', 'sessions', 'webServer'])
   assert.equal(typeof apply, 'function')
 })
 

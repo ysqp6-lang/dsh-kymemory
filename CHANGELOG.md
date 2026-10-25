@@ -4,6 +4,17 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] — 2026-10-25
+
+### Added
+
+- **客户端面板在 Web GUI 里复活**：会话视图多出「记忆」标签（对话 / 记忆 / 轨迹），含规模卡片、关键词搜索、任务族折叠列表（显示作用域）、inbox 与体检问题。
+
+### Fixed
+
+- **四个加载约定全踩过，逐条修正**：① `dsh.client` 不能声明 `immediately: true`（会让 bundle 执行两次触发 duplicate factory registration）；② `client.js` 顶层必须直接调用 `window.__ModuleLoader__.load`，包 IIFE 会让宿主认不出；③ bundle 的 `id` 必须等于**包名**（写成 `-panel` 后缀会让宿主报 `could not load`）；④ cordis 服务必须写进 `inject` 并通过 `ctx.webServer` 访问，`ctx.get('webServer')` 拿不到 → 路由从未注册 → API 404。
+- 客户端请求改用基于 `location.href` 的绝对地址，并把失败时的请求地址与页面地址一并显示，便于定位宿主协议差异。
+
 ## [0.5.1] — 2026-10-25
 
 ### Fixed
