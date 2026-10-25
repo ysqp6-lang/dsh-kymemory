@@ -65,7 +65,12 @@ test('面板 API：注册三条只读路由', () => {
     apply(ctx, { root, autoCapture: 'off' })
     assert.deepEqual(
       [...routes.keys()].sort(),
-      ['/dsh-kymemory/api/group', '/dsh-kymemory/api/overview', '/dsh-kymemory/api/search'],
+      [
+        '/dsh-kymemory/api/group',
+        '/dsh-kymemory/api/overview',
+        '/dsh-kymemory/api/search',
+        '/dsh-kymemory/panel',
+      ],
     )
   } finally {
     rmSync(root, { recursive: true, force: true })

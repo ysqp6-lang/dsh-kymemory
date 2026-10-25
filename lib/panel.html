@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>记忆系统 · dsh-kymemory</title>
+<style>
+  :root {
+    --bg: #17181c; --fg: #e6e6e6; --muted: #8b8f98; --line: rgba(255,255,255,.09);
+    --card: rgba(255,255,255,.05); --accent: #79a9ff; --ok: #5ad07a; --warn: #e0b44a; --err: #e06c6c;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg);
+    font: 14px/1.65 -apple-system, "PingFang SC", "Helvetica Neue", sans-serif; }
+  .wrap { max-width: 940px; margin: 0 auto; padding: 28px 22px 60px; }
+  header { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+  h1 { font-size: 19px; margin: 0; font-weight: 600; }
+  .root { color: var(--muted); font-size: 12px; font-family: ui-monospace, Menlo, monospace; }
+  .refresh { margin-left: auto; color: var(--muted); cursor: pointer; font-size: 13px; user-select: none; }
+  .refresh:hover { color: var(--fg); }
+  .cards { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; min-width: 108px; }
+  .card b { display: block; font-size: 17px; font-weight: 600; line-height: 1.35; }
+  .card span { font-size: 11px; color: var(--muted); }
+  .ok { color: var(--ok); } .warn { color: var(--warn); } .err { color: var(--err); }
+  input[type=search] { width: 100%; padding: 10px 13px; border-radius: 9px; border: 1px solid var(--line);
+    background: rgba(0,0,0,.25); color: inherit; font-size: 14px; outline: none; margin-bottom: 14px; }
+  input[type=search]:focus { border-color: rgba(121,169,255,.55); }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 8px 7px; border-radius: 7px; cursor: pointer; }
+  .row:hover { background: rgba(255,255,255,.05); }
+  .row.open { background: rgba(121,169,255,.10); }
+  .slug { font-family: ui-monospace, Menlo, monospace; font-size: 13px; }
+  .scope { font-size: 10px; color: var(--muted); margin-left: 7px; }
+  .count { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .body { padding: 2px 8px 10px 18px; border-left: 2px solid var(--line); margin: 0 0 8px 7px; }
+  .item { padding: 3px 0; font-size: 13px; }
+  .date { font-family: ui-monospace, Menlo, monospace; color: var(--muted); margin-right: 7px; }
+  .hit { padding: 6px 7px; border-radius: 7px; font-size: 13px; }
+  .hit:hover { background: rgba(255,255,255,.04); }
+  .file { font-family: ui-monospace, Menlo, monospace; font-size: 10px; color: var(--muted); }
+  .empty { color: var(--muted); padding: 10px 6px; }
+  .issues { margin: 0 0 16px; padding-left: 20px; font-size: 12px; color: var(--muted); }
+  .issues li { margin: 3px 0; }
+  .section-title { font-size: 12px; color: var(--muted); margin: 18px 0 6px; }
+  .badge { font-size: 10px; padding: 1px 7px; border-radius: 9px; background: rgba(121,169,255,.16); margin-left: 7px; }
+  footer { margin-top: 34px; color: var(--muted); font-size: 11px; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>记忆系统</h1>
+    <span class="root" id="root">…</span>
+    <span class="refresh" id="refresh">↻ 刷新</span>
+  </header>
+
+  <div class="cards" id="cards"></div>
+  <ul class="issues" id="issues"></ul>
+
+  <input type="search" id="q" placeholder="搜索记忆（中英文均可）…" autocomplete="off">
+
+  <div id="search"></div>
+  <div id="groups"></div>
+  <div id="inbox"></div>
+
+  <footer>
+    数据来自本地 <code>~/.dsh/memory/</code>，只读展示。
+    写入请让 DSH 里的 agent 用 <code>memory_save</code>，或直接编辑 Markdown 文件。
+  </footer>
+</div>
+
+<script>
+(function () {
+  var API = '/dsh-kymemory/api';
+  var el = function (id) { return document.getElementById(id); };
+  var esc = function (s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  };
+  var kb = function (n) {
+    n = Number(n) || 0;
+    return n < 1024 ? n + ' B' : (n / 1024).toFixed(1) + ' KB';
+  };
+  var splitDate = function (line) {
+    var m = /^-\s*(\d{4}-\d{2}-\d{2})\s+(.*)$/.exec(line);
+    return m ? { d: m[1].slice(5), t: m[2] } : { d: '', t: line.replace(/^-\s*/, '') };
+  };
+  var state = { open: null, overview: null };
+
+  function get(url) {
+    return fetch(url, { credentials: 'same-origin', cache: 'no-store' }).then(function (r) { return r.json(); });
+  }
+
+  function renderOverview(d) {
+    state.overview = d;
+    el('root').textContent = d.root || '';
+    var c = d.doctor.counts || {};
+    var inbox = (d.inbox || []).length;
+    var healthClass = c.error > 0 ? 'err' : c.warn > 0 ? 'warn' : 'ok';
+    el('cards').innerHTML = [
+      card(d.index.lines + ' 行', '索引 ' + kb(d.index.bytes) + ' / ' + kb(d.limits.maxIndexBytes), ''),
+      card(d.route.groups + ' 族', d.route.entries + ' 条记忆', ''),
+      card(inbox + ' 个', 'inbox 待整理', inbox > 0 ? 'warn' : ''),
+      card(d.doctor.ok ? '正常' : '有问题', (c.error || 0) + ' 错误 / ' + (c.warn || 0) + ' 警告', healthClass),
+      card((d.usage && d.usage.used) + ' / ' + (d.usage && d.usage.total), '族被 recall 过', '')
+    ].join('');
+
+    el('issues').innerHTML = (d.doctor.issues || []).slice(0, 6).map(function (i) {
+      return '<li class="' + (i.level === 'warn' ? 'warn' : '') + '">[' + esc(i.code) + '] ' + esc(i.message) + '</li>';
+    }).join('');
+
+    el('groups').innerHTML = (d.groups || []).map(function (g) {
+      return '<div class="row" data-slug="' + esc(g.slug) + '">' +
+        '<span><span class="slug">▸ ' + esc(g.slug) + '</span>' +
+        (g.scope ? '<span class="scope">@' + esc(g.scope) + '</span>' : '') + '</span>' +
+        '<span class="count">' + g.entries + ' 条</span></div>' +
+        '<div class="body" id="body-' + esc(g.slug) + '" style="display:none"></div>';
+    }).join('');
+
+    var inboxHtml = '';
+    if (inbox > 0) {
+      inboxHtml = '<div class="section-title">📥 inbox 待整理</div>' + (d.inbox || []).map(function (it) {
+        return '<div class="row"><span class="file">' + esc(it.name) + '</span>' +
+          '<span class="count">' + ((it.meta && it.meta.messages) || 0) + ' 条消息</span></div>';
+      }).join('');
+    }
+    el('inbox').innerHTML = inboxHtml;
+
+    Array.prototype.forEach.call(document.querySelectorAll('.row[data-slug]'), function (row) {
+      row.addEventListener('click', function () { toggle(row.getAttribute('data-slug'), row); });
+    });
+  }
+
+  function card(main, sub, cls) {
+    return '<div class="card"><b class="' + cls + '">' + esc(main) + '</b><span>' + esc(sub) + '</span></div>';
+  }
+
+  function toggle(slug, row) {
+    var body = el('body-' + slug);
+    if (!body) return;
+    if (state.open === slug) {
+      state.open = null;
+      body.style.display = 'none';
+      row.classList.remove('open');
+      row.querySelector('.slug').textContent = '▸ ' + slug;
+      return;
+    }
+    state.open = slug;
+    row.classList.add('open');
+    row.querySelector('.slug').textContent = '▾ ' + slug;
+    body.style.display = '';
+    body.innerHTML = '<div class="empty">读取中…</div>';
+    get(API + '/group?slug=' + encodeURIComponent(slug)).then(function (d) {
+      if (!d || d.ok === false) {
+        body.innerHTML = '<div class="empty err">' + esc((d && d.error) || '读取失败') + '</div>';
+        return;
+      }
+      var items = (d.text || '').split('\n').filter(function (l) { return l.charAt(0) === '-'; });
+      body.innerHTML = items.length
+        ? items.map(function (l) {
+            var p = splitDate(l);
+            return '<div class="item"><span class="date">' + esc(p.d) + '</span>' + esc(p.t) + '</div>';
+          }).join('')
+        : '<div class="empty">（这一族还没有条目）</div>';
+    }).catch(function (e) {
+      body.innerHTML = '<div class="empty err">' + esc(String(e)) + '</div>';
+    });
+  }
+
+  var timer = null;
+  el('q').addEventListener('input', function (e) {
+    var q = e.target.value.trim();
+    clearTimeout(timer);
+    if (!q) {
+      el('search').innerHTML = '';
+      el('groups').style.display = '';
+      el('inbox').style.display = '';
+      return;
+    }
+    el('groups').style.display = 'none';
+    el('inbox').style.display = 'none';
+    el('search').innerHTML = '<div class="empty">搜索中…</div>';
+    timer = setTimeout(function () {
+      get(API + '/search?q=' + encodeURIComponent(q)).then(function (d) {
+        if (!d || d.ok === false) {
+          el('search').innerHTML = '<div class="empty err">' + esc((d && d.error) || '搜索失败') + '</div>';
+          return;
+        }
+        if (!d.total) {
+          el('search').innerHTML = '<div class="empty">没有匹配「' + esc(q) + '」的记忆</div>';
+          return;
+        }
+        el('search').innerHTML = '<div class="section-title">命中 ' + d.total + ' 条</div>' +
+          d.hits.map(function (h) {
+            var p = splitDate(h.text);
+            return '<div class="hit"><div><span class="date">' + esc(p.d) + '</span>' + esc(p.t) + '</div>' +
+              '<div class="file">' + esc(h.file) + ' : ' + h.line + '</div></div>';
+          }).join('');
+      }).catch(function (e) {
+        el('search').innerHTML = '<div class="empty err">' + esc(String(e)) + '</div>';
+      });
+    }, 280);
+  });
+
+  function load() {
+    get(API + '/overview').then(renderOverview).catch(function (e) {
+      el('cards').innerHTML = '<div class="empty err">加载失败：' + esc(String(e)) + '</div>';
+    });
+  }
+
+  el('refresh').addEventListener('click', load);
+  load();
+})();
+</script>
+</body>
+</html>

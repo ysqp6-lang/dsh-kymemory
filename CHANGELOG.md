@@ -4,6 +4,17 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] — 2026-10-25
+
+### Fixed
+
+- **启动崩溃**：`dsh.client` 声明让宿主在 web boot 阶段加载客户端 bundle，加载失败会把整个插件条目标记为未激活（`import failed`），进而弹「应用无法启动」。已撤掉客户端声明。
+- **`memory_rules` 未定义引用**：`lib/index.js` 调用 `scanCorrections` / `formatCorrections` 却没有 `from './rules.js'` 的导入，工具一执行就会 `ReferenceError`。已补上。
+
+### Changed
+
+- 面板改为**独立网页** `/dsh-kymemory/panel`（由宿主 webServer 提供），不再走客户端插件插槽。零崩溃风险，功能一致：规模卡片、搜索、族列表、inbox、体检问题。
+
 ## [0.5.0] — 2026-10-25
 
 ### Added
