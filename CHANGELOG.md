@@ -4,6 +4,19 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] — 2026-10-26
+
+### Added
+
+- **六张状态卡片全部可点开**，点开后在下方展开详情面板，讲清「是什么 / 为什么 / 怎么办」：
+  - **索引** → 行数、当前占用、预算上限、剩余空间，并说明超限会被截断
+  - **任务族** → 按条目数排序的前 10 族（带作用域），提示单族超 50 条该拆分
+  - **证据** → summaries/ 下的文件清单与大小
+  - **inbox** → 候选清单（日期 + 会话 + 消息数）与处理流程
+  - **体检** → 完整 issue 列表（此前只显示前 6 条）与检查项说明
+  - **recall** → 从未被整族取过的族清单，以及「这不等于没用」的解释与三条改进路径
+- `overview` 接口补充 `evidenceFiles`、完整的 `doctor.issues` 与 `usage.neverUsed`。
+
 ## [0.6.3] — 2026-10-26
 
 ### Changed
