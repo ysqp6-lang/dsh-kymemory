@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.2] — 2026-10-26
+
+### Changed
+
+- 状态卡片改为 **3 列 × 2 行**，并给每张卡片加上有真实信息量的可视化：索引用横向预算条（2338/4096 → 57%）、任务族用「最大族占比」条（59/330 → 18%）、inbox 用上限条（4/50 → 8%）、体检与 recall 覆盖用**圆环进度**（环内显示百分比）。
+- 移除了没有信息量的装饰性圆环（任务族与证据原本恒为 100%），证据卡改为纯计数 + 用途说明。
+
 ## [0.6.1] — 2026-10-26
 
 ### Changed
