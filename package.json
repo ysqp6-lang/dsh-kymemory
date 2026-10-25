@@ -1,6 +1,6 @@
 {
   "name": "dsh-kymemory",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Layered local memory for DeepSeek Harness: a Markdown index auto-injected into the system prompt, a route layer read on demand, and evidence files for detail. Pure files, zero runtime dependencies.",
   "type": "module",
   "main": "lib/index.js",
