@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.3] — 2026-10-26
+
+### Changed
+
+- **热力配色**：进度条改成整条铺「绿 → 黄 → 橙 → 红」渐变，再按进度用 `clip-path` 裁出可见部分，所以 57% 看到的是绿到黄、96% 才看得到红；圆环按百分比做 HSL 色相插值。
+- recall 覆盖率这类「越高越好」的指标反向取色（7% 覆盖显示红色警示），并在标签里注明方向。
+
 ## [0.6.2] — 2026-10-26
 
 ### Changed
