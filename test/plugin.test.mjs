@@ -86,6 +86,7 @@ test('注册十二个记忆工具，且名字与参数契约完整', () => {
       'memory_pending',
       'memory_promote',
       'memory_recall',
+      'memory_rules',
       'memory_save',
       'memory_search',
       'memory_stats',
@@ -183,7 +184,7 @@ test('关闭注入或没有 systemPrompt 服务时不注册 section', () => {
     apply(noService.ctx, { root })
     assert.equal(noService.sections.length, 0)
     // 工具仍然要注册（注入是可选能力，工具不是）
-    assert.equal(noService.tools.length, 12)
+    assert.equal(noService.tools.length, 13)
   } finally {
     rmSync(root, { recursive: true, force: true })
   }

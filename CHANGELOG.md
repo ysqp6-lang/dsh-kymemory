@@ -4,6 +4,18 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] — 2026-10-25
+
+### Added
+
+- **回合记忆栏**：`memory_search` / `memory_recall` 的返回末尾附带 `📎 记忆来源`（文件与行号），模型回答时能直接引用依据；AGENTS.md 同步约定「用了记忆就标来源」。
+- **记忆作用域**：任务族可绑定项目目录（`## homework @~/Agent/MathorCup数模`）。`memory_search` / `memory_recall` 接受可选 `cwd`，只返回全局族 + 落在该目录内的项目族；不传 `cwd` 时不过滤，避免误杀。`memory_doctor` 会报出指向已不存在目录的作用域。
+- **规则候选提取（程序性记忆）**：新工具 `memory_rules`，扫描最近会话，提取「主人纠正过的地方」并带上当时助手的做法。只收集不写入——哪条值得变成 AGENTS.md 硬规则或 pitfalls 条目由 agent/主人判断。
+
+### Fixed
+
+- 作用域匹配曾允许父目录看到子项目（反向前缀匹配），会破坏项目隔离；现在只认「cwd 落在 scope 之内」。
+
 ## [0.3.0] — 2026-10-23
 
 ### Added
