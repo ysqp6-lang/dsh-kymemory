@@ -4,6 +4,18 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] — 2026-10-25
+
+### Added
+
+- **记忆面板（Web GUI）**：会话视图多出一个「记忆」标签，与「对话」「轨迹」并列。包含：规模卡片（索引行数/字节、族数与条目数、inbox 待整理、体检状态、被 recall 过的族数）、关键词搜索、任务族折叠列表（点开看该族全部条目、显示作用域）、体检问题与 inbox 列表。
+- 宿主半边新增三条**只读** API：`/dsh-kymemory/api/overview|group|search`。面板浏览用 `recordUsage: false`，看记忆不会污染用量统计。
+- 客户端半边走官方插槽 `conversation.view`（order 8），带错误边界：面板出问题只让自己消失，不影响官方 UI。
+
+### Notes
+
+- 面板**只读**。写入仍只走 `memory_save` 等工具或直接改文件，避免 UI 路径写坏正式库。
+
 ## [0.4.0] — 2026-10-25
 
 ### Added
